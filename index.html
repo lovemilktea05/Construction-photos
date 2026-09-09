@@ -163,19 +163,94 @@ canvas#signCanvas{touch-action:none!important;-webkit-touch-callout:none!importa
   .report hr{margin:1mm 0!important}
   .report-stage{font-size:11px!important;margin:1mm 0!important}
 }
-.signature-bottom-card{margin-top:14px}</style></head><body><div class="app"><div class="top"><b>現場照片報告</b><div style="display:flex;gap:6px"><button onclick="openBackup()">備份</button><button onclick="settings()">公司設定</button></div></div><div class="wrap" id="v"></div></div><script>
-const K="photo_report_v1";let d=JSON.parse(localStorage.getItem(K)||'{"settings":{},"jobs":[]}');const sv=()=>localStorage.setItem(K,JSON.stringify(d)),id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2),e=s=>String(s||"").replace(/[&<>"]/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[x])),today=()=>new Date().toISOString().slice(0,10);
-function home(){v.innerHTML=`<div class="card"><button class="primary" style="width:100%" onclick="edit()">＋ 新增工作</button></div><div class="card"><h2>工作紀錄</h2>${d.jobs.length?d.jobs.slice().reverse().map(j=>`<div class="job"><div><b>${e(j.title)}</b><div class="muted">${e(j.client)}・${e(j.date)}</div></div><button onclick="openJ('${j.id}')">開啟</button></div>`).join(""):'<div class="muted">還沒有工作紀錄</div>'}</div>`}
-function edit(x){let j=d.jobs.find(a=>a.id===x)||{id:id(),date:today(),photos:[]};v.innerHTML=`<div class="card"><h2>${x?"編輯":"新增"}工作</h2><div class="field"><label>工作名稱</label><input id="t" value="${e(j.title)}" placeholder="例如：王宅冷氣安裝"></div><div class="field"><label>客戶</label><input id="c" value="${e(j.client)}"></div><div class="field"><label>施工日期</label><input id="dt" type="date" value="${j.date}"></div><div class="field"><label>施工地址</label><input id="a" value="${e(j.address)}"></div><div class="field"><label>施工人員</label><input id="w" value="${e(j.worker)}"></div><div class="field"><label>工作內容</label><textarea id="n">${e(j.note)}</textarea></div><div class="actions"><button onclick="${x?`openJ('${x}')`:"home()"}">取消</button><button class="primary" onclick="saveJ('${j.id}',${!!x})">儲存</button></div></div>`}
-function saveJ(x,old){let z={id:x,title:t.value,client:c.value,date:dt.value,address:a.value,worker:w.value,note:n.value,photos:[]};if(old){let q=d.jobs.find(j=>j.id===x);z.photos=q.photos;Object.assign(q,z)}else d.jobs.push(z);sv();openJ(x)}
+.signature-bottom-card{margin-top:14px}
+.searchbar{display:flex;gap:8px;margin-bottom:12px}.searchbar input{flex:1}
+.notice{background:#fff7e6;border:1px solid #f0c36d;color:#6b4f00;border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:13px;line-height:1.5}
+.locked{background:#eef5ff;border:1px solid #a9c7ee;color:#244a73;border-radius:12px;padding:10px 12px;margin:10px 0;font-size:13px;line-height:1.5}
+.statusbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.statusbar button{flex:1;min-width:110px}
+.photo-order{display:flex;gap:6px;margin-top:6px}.photo-order button{flex:1;padding:7px 6px;font-size:12px}
+.logo-preview{display:flex;align-items:center;justify-content:center;min-height:90px;border:1px dashed #cfd6db;border-radius:12px;background:#fafafa;margin-top:8px}
+.logo-preview img{max-width:220px;max-height:80px;object-fit:contain}
+.report-head{display:flex;align-items:flex-start;gap:16px;margin-bottom:10px}.report-logo{width:92px;min-width:92px}.report-logo img{max-width:92px;max-height:68px;object-fit:contain}.report-head-main{flex:1;min-width:0}.report-head-main h1{text-align:left!important;margin:0 0 6px!important}
+.signed-badge{display:inline-block;padding:4px 9px;border-radius:999px;background:#e7f4ea;color:#27623a;font-size:12px;font-weight:800;margin-top:4px}
+.archive-badge{display:inline-block;padding:4px 9px;border-radius:999px;background:#edf0f2;color:#59636d;font-size:12px;font-weight:800;margin-top:4px}
+.tutorial-step{display:flex;gap:10px;align-items:flex-start;margin:12px 0}.tutorial-num{width:28px;height:28px;border-radius:50%;background:#243746;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex:0 0 auto}
+</style></head><body><div class="app"><div class="top"><b>現場照片報告</b><div style="display:flex;gap:6px"><button onclick="openBackup()">備份</button><button onclick="settings()">公司設定</button></div></div><div class="wrap" id="v"></div></div><script>
+const K="photo_report_v1";
+let d=JSON.parse(localStorage.getItem(K)||'{"settings":{},"jobs":[]}');
+d.settings=d.settings||{};
+d.jobs=(d.jobs||[]).map(j=>({...j,photos:j.photos||[],archived:!!j.archived}));
+const sv=()=>localStorage.setItem(K,JSON.stringify(d)),
+id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2),
+e=s=>String(s||"").replace(/[&<>"]/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[x])),
+today=()=>new Date().toISOString().slice(0,10);
+let homeArchiveMode=false;
+function isSigned(j){return !!(j&&j.signature)}
+function requireUnlocked(j){
+  if(isSigned(j)){alert('這份報告已由客戶簽認。若要修改內容，請先解除簽名。');return false}
+  return true;
+}
+function daysSince(iso){if(!iso)return 9999;return Math.floor((Date.now()-new Date(iso).getTime())/86400000)}
+function maybeShowTutorial(){if(d.settings.tutorialSeen||d.jobs.length)return;setTimeout(showTutorial,80)}
+function showTutorial(){
+  v.innerHTML=`<div class="card"><h2>第一次使用</h2>
+  <div class="tutorial-step"><div class="tutorial-num">1</div><div><b>新增工作</b><div class="muted">填客戶、地址、施工日期與工作內容。</div></div></div>
+  <div class="tutorial-step"><div class="tutorial-num">2</div><div><b>加入照片</b><div class="muted">把照片分成施工前、施工中、完工。</div></div></div>
+  <div class="tutorial-step"><div class="tutorial-num">3</div><div><b>產生報告</b><div class="muted">客戶確認後直接手寫簽名，再下載正式 PDF。</div></div></div>
+  <button class="primary" style="width:100%" onclick="finishTutorial()">開始使用</button></div>`;
+}
+function finishTutorial(){d.settings.tutorialSeen=true;sv();home()}
+
+function home(){
+ const q=(window.__homeQuery||'').toLowerCase().trim();
+ const list=d.jobs.filter(j=>!!j.archived===homeArchiveMode).filter(j=>{
+   if(!q)return true;
+   return [j.title,j.client,j.address].some(x=>String(x||'').toLowerCase().includes(q));
+ }).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+ const backupWarn=daysSince(d.settings.lastBackupAt)>=14;
+ v.innerHTML=`${backupWarn?`<div class="notice"><b>建議備份資料</b><br>${d.settings.lastBackupAt?'距離上次備份已超過 14 天。':'目前尚未下載過完整備份。'} <button style="margin-left:6px" onclick="openBackup()">前往備份</button></div>`:''}
+ <div class="card"><button class="primary" style="width:100%" onclick="edit()">＋ 新增工作</button></div>
+ <div class="card">
+   <div class="statusbar">
+     <button class="${!homeArchiveMode?'primary':''}" onclick="homeArchiveMode=false;home()">進行中</button>
+     <button class="${homeArchiveMode?'primary':''}" onclick="homeArchiveMode=true;home()">已封存</button>
+   </div>
+   <div class="searchbar"><input id="homeSearch" placeholder="搜尋工作、客戶或地址" value="${e(window.__homeQuery||'')}" oninput="window.__homeQuery=this.value;home()"></div>
+   <h2>${homeArchiveMode?'已封存工作':'工作紀錄'}</h2>
+   ${list.length?list.map(j=>`<div class="job"><div style="min-width:0;flex:1"><b>${e(j.title)}</b><div class="muted">${e(j.client)}・${e(j.date)}</div>${j.signature?'<span class="signed-badge">已簽認</span>':''}${j.archived?'<span class="archive-badge">已封存</span>':''}</div><button onclick="openJ('${j.id}')">開啟</button></div>`).join(""):'<div class="muted">'+(q?'找不到符合資料':'目前沒有資料')+'</div>'}
+ </div>`;
+ maybeShowTutorial();
+}
+function edit(x){let j=d.jobs.find(a=>a.id===x)||{id:id(),date:today(),photos:[]};if(x&&!requireUnlocked(j))return;v.innerHTML=`<div class="card"><h2>${x?"編輯":"新增"}工作</h2><div class="field"><label>工作名稱</label><input id="t" value="${e(j.title)}" placeholder="例如：王宅冷氣安裝"></div><div class="field"><label>客戶</label><input id="c" value="${e(j.client)}"></div><div class="field"><label>施工日期</label><input id="dt" type="date" value="${j.date}"></div><div class="field"><label>施工地址</label><input id="a" value="${e(j.address)}"></div><div class="field"><label>施工人員</label><input id="w" value="${e(j.worker)}"></div><div class="field"><label>工作內容</label><textarea id="n">${e(j.note)}</textarea></div><div class="actions"><button onclick="${x?`openJ('${x}')`:"home()"}">取消</button><button class="primary" onclick="saveJ('${j.id}',${!!x})">儲存</button></div></div>`}
+function saveJ(x,old){let z={id:x,title:t.value,client:c.value,date:dt.value,address:a.value,worker:w.value,note:n.value,photos:[]};if(old){let q=d.jobs.find(j=>j.id===x);z.photos=q.photos;z.signature=q.signature||'';z.signedAt=q.signedAt||'';z.archived=!!q.archived;Object.assign(q,z)}else d.jobs.push(z);sv();openJ(x)}
 function ensurePhotoIds(j){let changed=false;(j.photos||[]).forEach(p=>{if(!p.id){p.id=id();changed=true}});if(changed)sv();}
-function openJ(x){let j=d.jobs.find(q=>q.id===x);ensurePhotoIds(j);let st=["施工前","施工中","完工"];v.innerHTML=`<div class="card"><h2>${e(j.title)}</h2><div class="muted">${e(j.client)}・${e(j.date)}・${e(j.address)}</div><p>${e(j.note)}</p><div class="actions"><button onclick="home()">返回</button><button onclick="edit('${x}')">編輯</button><button class="primary" onclick="add('${x}')">＋照片</button></div></div>${st.map(s=>{let ps=j.photos.filter(p=>p.stage===s);return `<div class="card"><h2>${s} <span class="muted">${ps.length} 張</span></h2><div class="photos">${ps.map(p=>`<div class="photo"><img src="${p.data}" onclick="editPhoto('${x}','${p.id}')"><div><div>${e(p.note)||'<span class="muted">尚未填寫說明</span>'}</div><div class="actions" style="margin-top:6px"><button type="button" onclick="editPhoto('${x}','${p.id}')">✎ 編輯／換圖</button><button type="button" onclick="delPhoto('${x}','${p.id}')">刪除</button></div></div></div>`).join("")}</div></div>`}).join("")}<div class="card"><h2>產生報告</h2><div class="actions"><button class="primary" onclick="report('${x}',0)">施工紀錄</button><button onclick="report('${x}',1)">施工前後對照</button></div></div>`}
-function add(x){v.innerHTML=`<div class="card"><h2>加入照片</h2><div class="field"><label>分類</label><select id="st"><option>施工前</option><option>施工中</option><option>完工</option></select></div><div class="field"><label>說明</label><input id="pn"></div><div class="field"><label>照片</label><input id="fs" type="file" accept="image/*" multiple></div><div class="actions"><button onclick="openJ('${x}')">取消</button><button class="primary" onclick="saveP('${x}')">加入</button></div></div>`}
+function openJ(x){
+ let j=d.jobs.find(q=>q.id===x);if(!j)return home();ensurePhotoIds(j);
+ let st=["施工前","施工中","完工"];
+ v.innerHTML=`<div class="card"><h2>${e(j.title)}</h2><div class="muted">${e(j.client)}・${e(j.date)}・${e(j.address)}</div><p>${e(j.note)}</p>
+ ${j.signature?`<div class="locked"><b>此報告已簽認並鎖定</b><br>簽認時間：${e(j.signedAt||'')}<br>若要修改內容，需先解除簽名。</div>`:''}
+ <div class="actions"><button onclick="home()">返回</button><button onclick="edit('${x}')" ${j.signature?'disabled':''}>編輯資料</button><button class="primary" onclick="add('${x}')" ${j.signature?'disabled':''}>＋照片</button></div>
+ <div class="actions" style="margin-top:8px">${j.signature?`<button onclick="unlockSignature('${x}')">解除簽名</button>`:''}<button onclick="toggleArchive('${x}')">${j.archived?'取消封存':'封存'}</button><button onclick="deleteJob('${x}')" style="color:#b42318">刪除工作</button></div></div>
+ ${st.map(stage=>{let ps=j.photos.filter(p=>p.stage===stage);return `<div class="card"><h2>${stage} <span class="muted">${ps.length} 張</span></h2><div class="photos">${ps.map((p,idx)=>`<div class="photo"><img src="${p.data}" onclick="editPhoto('${x}','${p.id}')"><div><div>${e(p.note)||'<span class="muted">尚未填寫說明</span>'}</div><div class="actions" style="margin-top:6px"><button type="button" onclick="editPhoto('${x}','${p.id}')" ${j.signature?'disabled':''}>✎ 編輯／換圖</button><button type="button" onclick="delPhoto('${x}','${p.id}')" ${j.signature?'disabled':''}>刪除</button></div><div class="photo-order"><button type="button" onclick="movePhoto('${x}','${p.id}',-1)" ${idx===0||j.signature?'disabled':''}>↑ 上移</button><button type="button" onclick="movePhoto('${x}','${p.id}',1)" ${idx===ps.length-1||j.signature?'disabled':''}>↓ 下移</button></div></div></div>`).join("")}</div></div>`}).join("")}
+ <div class="card"><h2>產生報告</h2><div class="actions"><button class="primary" onclick="report('${x}',0)">施工紀錄</button><button onclick="report('${x}',1)">施工前後對照</button></div></div>`;
+}
+function movePhoto(jid,pid,dir){
+ const j=d.jobs.find(q=>q.id===jid);if(!j||!requireUnlocked(j))return;
+ const p=j.photos.find(q=>q.id===pid);if(!p)return;
+ const same=j.photos.filter(q=>q.stage===p.stage);
+ const idx=same.findIndex(q=>q.id===pid),target=same[idx+dir];if(!target)return;
+ const a=j.photos.findIndex(q=>q.id===p.id),b=j.photos.findIndex(q=>q.id===target.id);
+ [j.photos[a],j.photos[b]]=[j.photos[b],j.photos[a]];sv();openJ(jid);
+}
+function toggleArchive(jid){const j=d.jobs.find(q=>q.id===jid);if(!j)return;j.archived=!j.archived;sv();homeArchiveMode=!!j.archived;home()}
+function deleteJob(jid){const j=d.jobs.find(q=>q.id===jid);if(!j)return;if(!confirm(`確定刪除「${j.title||'這筆工作'}」？此動作無法復原。`))return;d.jobs=d.jobs.filter(q=>q.id!==jid);sv();home()}
+function unlockSignature(jid){const j=d.jobs.find(q=>q.id===jid);if(!j)return;if(!confirm('解除簽名後，這份報告可再次修改。確定解除客戶簽名嗎？'))return;j.signature='';j.signedAt='';sv();openJ(jid)}
+function add(x){let j0=d.jobs.find(q=>q.id===x);if(!j0||!requireUnlocked(j0))return;v.innerHTML=`<div class="card"><h2>加入照片</h2><div class="field"><label>分類</label><select id="st"><option>施工前</option><option>施工中</option><option>完工</option></select></div><div class="field"><label>說明</label><input id="pn"></div><div class="field"><label>照片</label><input id="fs" type="file" accept="image/*" multiple></div><div class="actions"><button onclick="openJ('${x}')">取消</button><button class="primary" onclick="saveP('${x}')">加入</button></div></div>`}
 async function data(f){return new Promise(r=>{let rd=new FileReader();rd.onload=q=>{let im=new Image();im.onload=()=>{let z=Math.min(1,1400/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*z;c.height=im.height*z;c.getContext("2d").drawImage(im,0,0,c.width,c.height);r(c.toDataURL("image/jpeg",.76))};im.src=q.target.result};rd.readAsDataURL(f)})}
 async function saveP(x){let j=d.jobs.find(q=>q.id===x),f=[...fs.files];if(!f.length)return alert("請選照片");for(let q of f)j.photos.push({id:id(),stage:st.value,note:pn.value,data:await data(q)});sv();openJ(x)}
 
 function editPhoto(jid,pid){
- let j=d.jobs.find(q=>q.id===jid);ensurePhotoIds(j);
+ let j=d.jobs.find(q=>q.id===jid);if(!j||!requireUnlocked(j))return;ensurePhotoIds(j);
  let p=j.photos.find(q=>q.id===pid);if(!p){alert('找不到這張照片');return}
  v.innerHTML=`<div class="card"><h2>編輯照片</h2>
  <div class="field"><label>照片分類</label><select id="editStage"><option ${p.stage==='施工前'?'selected':''}>施工前</option><option ${p.stage==='施工中'?'selected':''}>施工中</option><option ${p.stage==='完工'?'selected':''}>完工</option></select></div>
@@ -192,12 +267,13 @@ async function savePhotoEdit(jid,pid){
  sv();openJ(jid);
 }
 function delPhoto(jid,pid){
+ let j0=d.jobs.find(q=>q.id===jid);if(!j0||!requireUnlocked(j0))return;
  if(!confirm('確定刪除這張照片？'))return;
  let j=d.jobs.find(q=>q.id===jid);ensurePhotoIds(j);
  j.photos=j.photos.filter(q=>q.id!==pid);sv();openJ(jid);
 }
 
-function report(x,cmp){window.__reportCompare=cmp;let j=d.jobs.find(q=>q.id===x),s=d.settings.company||"現場工作紀錄",body;if(!cmp){body=["施工前","施工中","完工"].map(z=>{let ps=j.photos.filter(p=>p.stage===z);if(!ps.length)return "";let pages=[];for(let i=0;i<ps.length;i+=2)pages.push(ps.slice(i,i+2));return `<h2 class="report-stage">${z}</h2>`+pages.map(pg=>`<div class="report-photo-page ${pg.length===1?'one':'two'}">${pg.map(p=>`<div class="report-item"><img src="${p.data}"><div class="report-note">${e(p.note)}</div></div>`).join("")}</div>`).join("")}).join("");}else{
+function report(x,cmp){window.__reportCompare=cmp;let j=d.jobs.find(q=>q.id===x),s=d.settings.company||"現場工作紀錄",body;let photoCount=(j.photos||[]).length;if(photoCount>4&&!confirm(`目前有 ${photoCount} 張照片，PDF 會自動增加頁數。要繼續產生報告嗎？`)){openJ(x);return;}if(!cmp){body=["施工前","施工中","完工"].map(z=>{let ps=j.photos.filter(p=>p.stage===z);if(!ps.length)return "";let pages=[];for(let i=0;i<ps.length;i+=2)pages.push(ps.slice(i,i+2));return `<h2 class="report-stage">${z}</h2>`+pages.map(pg=>`<div class="report-photo-page ${pg.length===1?'one':'two'}">${pg.map(p=>`<div class="report-item"><img src="${p.data}"><div class="report-note">${e(p.note)}</div></div>`).join("")}</div>`).join("")}).join("");}else{
  let b=j.photos.filter(p=>p.stage==="施工前"),a=j.photos.filter(p=>p.stage==="完工");
  let pages=Math.max(Math.ceil(b.length/2),Math.ceil(a.length/2));
  body=`<h2 class="report-stage">施工前後對照</h2>`+
@@ -208,8 +284,8 @@ function report(x,cmp){window.__reportCompare=cmp;let j=d.jobs.find(q=>q.id===x)
    }</div>`;
    return `<div class="compare-sheet">${col("施工前",bs)}${col("施工後",as)}</div>`;
  }).join("")
-}v.innerHTML=`<div class="card no-print"><div class="actions"><button onclick="openJ('${x}')">返回</button><button class="primary" onclick="print()">儲存／列印 PDF</button></div>
-</div><div class="report"><h1>${e(s)}</h1><p><b>工作：</b>${e(j.title)}　<b>日期：</b>${e(j.date)}<br><b>客戶：</b>${e(j.client)}　<b>施工人員：</b>${e(j.worker)}<br><b>地址：</b>${e(j.address)}</p><hr>${body}<div class="report-final"><div class="sign">
+}v.innerHTML=`<div class="card no-print"><div class="actions"><button onclick="openJ('${x}')">返回</button><button class="primary" onclick="downloadFormalPDF(\'${x}\')">下載正式 PDF</button></div>
+</div><div class="report" id="reportPrintArea"><div class="report-head"><div class="report-logo">${d.settings.logo?`<img src="${d.settings.logo}" alt="公司 Logo">`:``}</div><div class="report-head-main"><h1>${e(s)}</h1><p><b>工作：</b>${e(j.title)}　<b>日期：</b>${e(j.date)}<br><b>客戶：</b>${e(j.client)}　<b>施工人員：</b>${e(j.worker)}<br><b>地址：</b>${e(j.address)}</p></div></div><hr>${body}<div class="report-final"><div class="sign">
 <div class="sign-box"><div class="sign-space">${j.signature?`<img class="signed-preview" src="${j.signature}" alt="客戶電子簽名">`:''}</div><div class="sign-line">客戶簽認${j.signedAt?`<div class="company-meta">簽認時間：${e(j.signedAt)}</div>`:''}</div></div>
 <div class="sign-box"><div class="sign-space">${d.settings.stamp?`<img src="${d.settings.stamp}" alt="公司統編章">`:''}</div><div class="sign-line">${e(s)}${d.settings.taxId?`<div class="company-meta">統一編號：${e(d.settings.taxId)}</div>`:''}</div></div>
 </div></div></div><div class="card no-print signature-bottom-card"><div class="signature-panel"><h2 style="margin-top:14px">客戶電子簽名</h2>
@@ -224,6 +300,34 @@ function report(x,cmp){window.__reportCompare=cmp;let j=d.jobs.find(q=>q.id===x)
 <button id="saveSignBtn" class="primary" onclick="saveSignature('${x}')" disabled style="opacity:.45">確認簽名</button>
 </div></div></div>`;setTimeout(initSignaturePad,0)}
 
+async function downloadFormalPDF(jid){
+ const j=d.jobs.find(q=>q.id===jid);if(!j)return;
+ const source=document.getElementById('reportPrintArea');if(!source)return alert('找不到報告內容。');
+ if(!window.html2canvas||!window.jspdf)return alert('PDF 元件尚未載入完成，請確認網路連線後再試一次。');
+ try{
+   const holder=document.createElement('div');
+   holder.style.position='fixed';holder.style.left='-10000px';holder.style.top='0';holder.style.width='794px';holder.style.background='#fff';holder.style.color='#111';holder.style.padding='28px';holder.style.boxSizing='border-box';
+   const clone=source.cloneNode(true);clone.style.width='100%';clone.style.maxWidth='none';clone.style.margin='0';clone.style.padding='0';
+   holder.appendChild(clone);document.body.appendChild(holder);
+   const canvas=await html2canvas(holder,{scale:2,backgroundColor:'#fff',useCORS:true,logging:false,windowWidth:794});
+   holder.remove();
+   const {jsPDF}=window.jspdf,pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4',compress:true});
+   const pageW=210,pageH=297,margin=8,usableW=pageW-margin*2,usableH=pageH-margin*2;
+   const imgW=usableW,pxPerMm=canvas.width/imgW,slicePx=Math.floor(usableH*pxPerMm);
+   let y=0,page=0;
+   while(y<canvas.height){
+     const h=Math.min(slicePx,canvas.height-y),part=document.createElement('canvas');
+     part.width=canvas.width;part.height=h;
+     part.getContext('2d').drawImage(canvas,0,y,canvas.width,h,0,0,canvas.width,h);
+     const data=part.toDataURL('image/jpeg',0.95);
+     if(page>0)pdf.addPage();
+     pdf.addImage(data,'JPEG',margin,margin,imgW,h/pxPerMm,undefined,'FAST');
+     y+=h;page++;
+   }
+   const clean=v=>String(v||'').replace(/[\\/:*?"<>|]/g,'_').trim();
+   pdf.save(`${clean(j.client)||'客戶'}_${clean(j.title)||'工作紀錄'}_${clean(j.date)||today()}.pdf`);
+ }catch(err){console.error(err);alert('PDF 產生失敗，請稍後再試。');}
+}
 let sigCtx=null,sigDrawing=false,sigHasInk=false;
 function initSignaturePad(){
  const c=document.getElementById('signCanvas');if(!c)return;
@@ -320,7 +424,7 @@ function saveSignature(jid){
 
 function openBackup(){
  v.innerHTML=`<div class="card"><h2>資料備份</h2>
- <div class="muted">目前工作紀錄會自動儲存在這支裝置的瀏覽器內。建議定期下載備份，換手機時可以再匯入還原。</div>
+ <div class="muted">目前工作紀錄會自動儲存在這支裝置的瀏覽器內。建議定期下載備份，換手機時可以再匯入還原。${d.settings.lastBackupAt?`<br><br>上次備份：${e(new Date(d.settings.lastBackupAt).toLocaleString('zh-TW'))}`:'<br><br>尚未備份'}</div>
  <div style="margin-top:12px" class="actions">
    <button class="primary" onclick="exportBackup()">下載備份</button>
    <button onclick="document.getElementById('backupFile').click()">匯入備份</button>
@@ -331,18 +435,15 @@ function openBackup(){
 }
 function exportBackup(){
  try{
-   const payload={app:'現場照片報告工具',version:1,exportedAt:new Date().toISOString(),data:d};
-   const blob=new Blob([JSON.stringify(payload)],{type:'application/json'});
-   const url=URL.createObjectURL(blob);
-   const a=document.createElement('a');
-   const company=(d.settings&&d.settings.company)||'現場照片報告';
-   const date=new Date().toISOString().slice(0,10);
-   a.href=url;
-   a.download=(company+'_'+date+'_完整備份.json').replace(/[\\/:*?"<>|]/g,'_');
-   document.body.appendChild(a);a.click();a.remove();
-   setTimeout(()=>URL.revokeObjectURL(url),1000);
+   d.settings=d.settings||{};d.settings.lastBackupAt=new Date().toISOString();sv();
+   const payload={app:'現場照片報告工具',version:2,exportedAt:d.settings.lastBackupAt,data:d};
+   const blob=new Blob([JSON.stringify(payload)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+   const company=(d.settings&&d.settings.company)||'現場照片報告',date=new Date().toISOString().slice(0,10);
+   a.href=url;a.download=(company+'_'+date+'_完整備份.json').replace(/[\\/:*?"<>|]/g,'_');
+   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);alert('完整備份已下載。');
  }catch(err){alert('備份失敗，請稍後再試。');}
 }
+
 function importBackup(ev){
  const file=ev.target.files&&ev.target.files[0];if(!file)return;
  const r=new FileReader();
@@ -362,18 +463,24 @@ function importBackup(ev){
  };
  r.readAsText(file);
 }
-let pendingStamp=null;
+let pendingStamp=null,pendingLogo=null;
 function settings(){
  let s=d.settings||{};
  v.innerHTML=`<div class="card"><h2>公司設定</h2>
  <div class="field"><label>公司／工作室名稱</label><input id="co" value="${e(s.company)}"></div>
  <div class="field"><label>統一編號</label><input id="tax" inputmode="numeric" value="${e(s.taxId)}"></div>
  <div class="field"><label>電話</label><input id="ph" value="${e(s.phone)}"></div>
+ <div class="field"><label>公司 Logo</label><input id="logoFile" type="file" accept="image/png,image/jpeg,image/webp" onchange="previewLogo(this)"></div>
+ <div id="logoPreview" class="logo-preview">${s.logo?`<img src="${s.logo}" alt="公司 Logo">`:'<span class="muted">尚未上傳 Logo</span>'}</div>
+ ${s.logo?'<button style="width:100%;margin:8px 0" onclick="removeLogo()">移除 Logo</button>':''}
  <div class="field"><label>公司統編章／發票章</label><input id="stampFile" type="file" accept="image/png,image/jpeg,image/webp" onchange="previewStamp(this)"></div>
  <div class="card" style="text-align:center;padding:10px">${s.stamp?`<img src="${s.stamp}" style="max-width:180px;max-height:110px;object-fit:contain">`:'<span class="muted">尚未上傳公司章</span>'}</div>
  ${s.stamp?'<button style="width:100%;margin-bottom:10px" onclick="removeStamp()">移除公司章</button>':''}
  <div class="actions"><button onclick="home()">取消</button><button class="primary" onclick="saveSettings()">儲存</button></div></div>`;
 }
+function previewLogo(input){const f=input.files&&input.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{pendingLogo=r.result;const box=document.getElementById('logoPreview');if(box)box.innerHTML=`<img src="${pendingLogo}" alt="Logo 預覽">`};r.readAsDataURL(f)}
+function removeLogo(){if(!confirm('確定移除公司 Logo？'))return;d.settings.logo='';pendingLogo=null;sv();settings()}
+
 function previewStamp(input){
  const f=input.files&&input.files[0]; if(!f)return;
  const r=new FileReader();
@@ -389,8 +496,11 @@ function saveSettings(){
  d.settings.company=co.value.trim();
  d.settings.taxId=tax.value.trim();
  d.settings.phone=ph.value.trim();
- if(pendingStamp){d.settings.stamp=pendingStamp;pendingStamp=null;}
+ if(pendingLogo){d.settings.logo=pendingLogo;pendingLogo=null;} if(pendingStamp){d.settings.stamp=pendingStamp;pendingStamp=null;}
  sv();home();
 }
 home();
-</script></body></html>
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</body></html>
