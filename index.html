@@ -14,7 +14,7 @@ canvas#signCanvas{touch-action:none!important;-webkit-touch-callout:none!importa
   .report{padding:0!important}
   .report h1{margin-top:0}
   .report-grid{display:block!important}
-  .report-photo-page{break-after:page;page-break-after:always}
+  .report-photo-page{break-after:auto;page-break-after:auto}
   .report-photo-page:last-of-type{break-after:auto;page-break-after:auto}
   .report-item{
     break-inside:avoid!important;
@@ -43,15 +43,15 @@ canvas#signCanvas{touch-action:none!important;-webkit-touch-callout:none!importa
     height:205mm!important;
   }
   .report-final{
-    break-before:page;
-    page-break-before:always;
+    break-before:auto;
+    page-break-before:auto;
   }
 }
 .report-photo-page{margin-bottom:18px}
 .report-photo-page .report-item{margin-bottom:10px}
 
 @media print{
- .compare-sheet{display:grid!important;grid-template-columns:1fr 1fr;gap:8mm;break-after:page;page-break-after:always}
+ .compare-sheet{display:grid!important;grid-template-columns:1fr 1fr;gap:8mm;break-after:auto;page-break-after:auto}
  .compare-sheet:last-of-type{break-after:auto;page-break-after:auto}
  .compare-col{display:flex;flex-direction:column;gap:7mm}
  .compare-title{text-align:center;font-weight:800;font-size:16px;margin-bottom:2mm}
@@ -109,6 +109,59 @@ canvas#signCanvas{touch-action:none!important;-webkit-touch-callout:none!importa
   .sign-space img,.signed-preview{max-height:17mm!important;max-width:35mm!important}
   .sign-line{font-size:9px!important;padding-top:2mm!important}
   .company-meta{font-size:8px!important;margin-top:1mm!important}
+}
+
+@media print{
+  @page{size:A4 portrait;margin:7mm}
+  .report-final{
+    break-before:auto!important;
+    page-break-before:auto!important;
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+    margin:2mm 0 0!important;
+  }
+  .compare-sheet{
+    break-after:auto!important;
+    page-break-after:auto!important;
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+    gap:3mm!important;
+  }
+  .compare-col{gap:2mm!important}
+  .compare-title{font-size:11px!important;margin:0 0 1mm!important}
+  .compare-photo{
+    height:66mm!important;
+    margin:0 0 2mm!important;
+    padding:2px!important;
+  }
+  .compare-photo img{
+    height:54mm!important;
+    object-fit:contain!important;
+  }
+  .compare-empty{height:66mm!important}
+  .sign{
+    margin-top:1mm!important;
+    gap:8mm!important;
+  }
+  .sign-box{
+    min-height:22mm!important;
+  }
+  .sign-space{
+    height:14mm!important;
+  }
+  .sign-space img,.signed-preview{
+    max-height:13mm!important;
+    max-width:30mm!important;
+  }
+  .sign-line{
+    font-size:8px!important;
+    padding-top:1mm!important;
+  }
+  .company-meta{font-size:7px!important}
+  .report h1{font-size:18px!important;margin:0 0 2mm!important}
+  .report p{font-size:9px!important;margin:0 0 1mm!important;line-height:1.15!important}
+  .report hr{margin:1mm 0!important}
+  .report-stage{font-size:11px!important;margin:1mm 0!important}
 }
 </style></head><body><div class="app"><div class="top"><b>現場照片報告</b><div style="display:flex;gap:6px"><button onclick="openBackup()">備份</button><button onclick="settings()">公司設定</button></div></div><div class="wrap" id="v"></div></div><script>
 const K="photo_report_v1";let d=JSON.parse(localStorage.getItem(K)||'{"settings":{},"jobs":[]}');const sv=()=>localStorage.setItem(K,JSON.stringify(d)),id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2),e=s=>String(s||"").replace(/[&<>"]/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[x])),today=()=>new Date().toISOString().slice(0,10);
