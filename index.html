@@ -209,7 +209,17 @@ function report(x,cmp){window.__reportCompare=cmp;let j=d.jobs.find(q=>q.id===x)
    return `<div class="compare-sheet">${col("施工前",bs)}${col("施工後",as)}</div>`;
  }).join("")
 }v.innerHTML=`<div class="card no-print"><div class="actions"><button onclick="openJ('${x}')">返回</button><button class="primary" onclick="print()">儲存／列印 PDF</button></div>
-<div class="signature-panel"><h2 style="margin-top:14px">客戶電子簽名</h2><div class="muted">確認內容後，可直接在手機下方手寫簽名。</div><canvas id="signCanvas" class="signature-canvas"></canvas><div class="signature-tools"><button onclick="clearSignature()">清除重簽</button><button class="primary" onclick="saveSignature('${x}')">確認簽名</button></div></div></div><div class="report"><h1>${e(s)}</h1><p><b>工作：</b>${e(j.title)}　<b>日期：</b>${e(j.date)}<br><b>客戶：</b>${e(j.client)}　<b>施工人員：</b>${e(j.worker)}<br><b>地址：</b>${e(j.address)}</p><hr>${body}<div class="report-final"><div class="sign">
+<div class="signature-panel"><h2 style="margin-top:14px">客戶電子簽名</h2>
+<div class="muted">確認內容後，可直接在手機下方手寫簽名。</div>
+<canvas id="signCanvas" class="signature-canvas"></canvas>
+<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14px;font-weight:700">
+<input id="signConfirmCheck" type="checkbox" style="width:20px;height:20px;flex:0 0 auto" onchange="updateSignButton()">
+我已確認報告內容無誤
+</label>
+<div class="signature-tools">
+<button onclick="clearSignature()">清除重簽</button>
+<button id="saveSignBtn" class="primary" onclick="saveSignature('${x}')" disabled style="opacity:.45">確認簽名</button>
+</div></div></div><div class="report"><h1>${e(s)}</h1><p><b>工作：</b>${e(j.title)}　<b>日期：</b>${e(j.date)}<br><b>客戶：</b>${e(j.client)}　<b>施工人員：</b>${e(j.worker)}<br><b>地址：</b>${e(j.address)}</p><hr>${body}<div class="report-final"><div class="sign">
 <div class="sign-box"><div class="sign-space">${j.signature?`<img class="signed-preview" src="${j.signature}" alt="客戶電子簽名">`:''}</div><div class="sign-line">客戶簽認${j.signedAt?`<div class="company-meta">簽認時間：${e(j.signedAt)}</div>`:''}</div></div>
 <div class="sign-box"><div class="sign-space">${d.settings.stamp?`<img src="${d.settings.stamp}" alt="公司統編章">`:''}</div><div class="sign-line">${e(s)}${d.settings.taxId?`<div class="company-meta">統一編號：${e(d.settings.taxId)}</div>`:''}</div></div>
 </div></div></div>`;setTimeout(initSignaturePad,0)}
@@ -286,10 +296,21 @@ function clearSignature(){
    sigHasInk=false;
  }
 }
+function updateSignButton(){
+ const chk=document.getElementById('signConfirmCheck');
+ const btn=document.getElementById('saveSignBtn');
+ if(!btn)return;
+ const ok=!!(chk&&chk.checked);
+ btn.disabled=!ok;
+ btn.style.opacity=ok?'1':'.45';
+}
 function saveSignature(jid){
  const c=document.getElementById('signCanvas'),j=d.jobs.find(q=>q.id===jid);
  if(!c||!j)return;
  if(!sigHasInk){alert('請先在簽名框內簽名。');return;}
+ const chk=document.getElementById('signConfirmCheck');
+ if(!chk||!chk.checked){alert('請先勾選「我已確認報告內容無誤」。');return;}
+ if(!confirm('簽名確認後會寫入這份報告，確定要儲存嗎？'))return;
  j.signature=c.toDataURL('image/png');
  j.signedAt=new Date().toLocaleString('zh-TW');
  sv();
