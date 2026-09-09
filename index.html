@@ -4,6 +4,68 @@
 .signature-canvas{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-user-drag:none;overscroll-behavior:contain}.signature-canvas{width:100%;height:180px;border:1px dashed #9aa4ad;border-radius:12px;background:#fff;touch-action:none;display:block}.signature-tools{display:flex;gap:8px;margin-top:8px}.signature-tools button{flex:1}.signed-preview{max-width:100%;max-height:3.4cm;object-fit:contain;display:block;margin:auto}
 @media print{.top,.no-print{display:none!important}.wrap{padding:0}.card{border:0}.report{padding:10mm}}
 canvas#signCanvas{touch-action:none!important;-webkit-touch-callout:none!important;-webkit-user-select:none!important;user-select:none!important;-webkit-user-drag:none!important}
+
+@media print{
+  @page{size:A4;margin:12mm}
+  body{background:#fff}
+  .top,.no-print{display:none!important}
+  .wrap{padding:0}
+  .card{border:0;box-shadow:none}
+  .report{padding:0!important}
+  .report h1{margin-top:0}
+  .report-grid{display:block!important}
+  .report-photo-page{break-after:page;page-break-after:always}
+  .report-photo-page:last-of-type{break-after:auto;page-break-after:auto}
+  .report-item{
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+    border:1px solid #aaa;
+    padding:6px;
+    margin-bottom:8mm;
+    height:118mm;
+    display:flex;
+    flex-direction:column;
+  }
+  .report-item img{
+    width:100%!important;
+    height:92mm!important;
+    object-fit:contain!important;
+    background:#fff;
+  }
+  .report-item .report-note{
+    min-height:12mm;
+    margin-top:4mm;
+  }
+  .report-photo-page.one .report-item{
+    height:240mm;
+  }
+  .report-photo-page.one .report-item img{
+    height:205mm!important;
+  }
+  .report-final{
+    break-before:page;
+    page-break-before:always;
+  }
+}
+.report-photo-page{margin-bottom:18px}
+.report-photo-page .report-item{margin-bottom:10px}
+
+@media print{
+ .compare-sheet{display:grid!important;grid-template-columns:1fr 1fr;gap:8mm;break-after:page;page-break-after:always}
+ .compare-sheet:last-of-type{break-after:auto;page-break-after:auto}
+ .compare-col{display:flex;flex-direction:column;gap:7mm}
+ .compare-title{text-align:center;font-weight:800;font-size:16px;margin-bottom:2mm}
+ .compare-photo{height:105mm;border:1px solid #aaa;padding:5px;break-inside:avoid;page-break-inside:avoid;display:flex;flex-direction:column}
+ .compare-photo img{width:100%!important;height:84mm!important;object-fit:contain!important;background:#fff}
+ .compare-photo small{display:block;margin-top:3mm;font-size:11px}
+ .compare-empty{height:105mm}
+}
+.compare-sheet{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.compare-col{min-width:0}
+.compare-title{text-align:center;font-weight:800;margin-bottom:8px}
+.compare-photo{border:1px solid #ddd;border-radius:8px;padding:6px;margin-bottom:8px}
+.compare-photo img{width:100%;max-height:260px;object-fit:contain}
+.compare-photo small{display:block;margin-top:5px}
 </style></head><body><div class="app"><div class="top"><b>現場照片報告</b><div style="display:flex;gap:6px"><button onclick="openBackup()">備份</button><button onclick="settings()">公司設定</button></div></div><div class="wrap" id="v"></div></div><script>
 const K="photo_report_v1";let d=JSON.parse(localStorage.getItem(K)||'{"settings":{},"jobs":[]}');const sv=()=>localStorage.setItem(K,JSON.stringify(d)),id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2),e=s=>String(s||"").replace(/[&<>"]/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[x])),today=()=>new Date().toISOString().slice(0,10);
 function home(){v.innerHTML=`<div class="card"><button class="primary" style="width:100%" onclick="edit()">＋ 新增工作</button></div><div class="card"><h2>工作紀錄</h2>${d.jobs.length?d.jobs.slice().reverse().map(j=>`<div class="job"><div><b>${e(j.title)}</b><div class="muted">${e(j.client)}・${e(j.date)}</div></div><button onclick="openJ('${j.id}')">開啟</button></div>`).join(""):'<div class="muted">還沒有工作紀錄</div>'}</div>`}
@@ -38,11 +100,22 @@ function delPhoto(jid,pid){
  j.photos=j.photos.filter(q=>q.id!==pid);sv();openJ(jid);
 }
 
-function report(x,cmp){window.__reportCompare=cmp;let j=d.jobs.find(q=>q.id===x),s=d.settings.company||"現場工作紀錄",body;if(!cmp)body=["施工前","施工中","完工"].map(z=>{let ps=j.photos.filter(p=>p.stage===z);return ps.length?`<h2>${z}</h2><div class="report-grid">${ps.map(p=>`<div class="report-item"><img src="${p.data}"><div>${e(p.note)}</div></div>`).join("")}</div>`:""}).join("");else{let b=j.photos.filter(p=>p.stage==="施工前"),a=j.photos.filter(p=>p.stage==="完工"),m=Math.max(b.length,a.length);body=`<h2>施工前後對照</h2>${Array.from({length:m},(_,i)=>`<div class="compare"><div><b>施工前</b>${b[i]?`<img src="${b[i].data}"><small>${e(b[i].note)}</small>`:""}</div><div><b>完工</b>${a[i]?`<img src="${a[i].data}"><small>${e(a[i].note)}</small>`:""}</div></div>`).join("")}`}v.innerHTML=`<div class="card no-print"><div class="actions"><button onclick="openJ('${x}')">返回</button><button class="primary" onclick="print()">儲存／列印 PDF</button></div>
-<div class="signature-panel"><h2 style="margin-top:14px">客戶電子簽名</h2><div class="muted">確認內容後，可直接在手機下方手寫簽名。</div><canvas id="signCanvas" class="signature-canvas"></canvas><div class="signature-tools"><button onclick="clearSignature()">清除重簽</button><button class="primary" onclick="saveSignature('${x}')">確認簽名</button></div></div></div><div class="report"><h1>${e(s)}</h1><p><b>工作：</b>${e(j.title)}　<b>日期：</b>${e(j.date)}<br><b>客戶：</b>${e(j.client)}　<b>施工人員：</b>${e(j.worker)}<br><b>地址：</b>${e(j.address)}</p><hr>${body}<div class="sign">
+function report(x,cmp){window.__reportCompare=cmp;let j=d.jobs.find(q=>q.id===x),s=d.settings.company||"現場工作紀錄",body;if(!cmp){body=["施工前","施工中","完工"].map(z=>{let ps=j.photos.filter(p=>p.stage===z);if(!ps.length)return "";let pages=[];for(let i=0;i<ps.length;i+=2)pages.push(ps.slice(i,i+2));return `<h2 class="report-stage">${z}</h2>`+pages.map(pg=>`<div class="report-photo-page ${pg.length===1?'one':'two'}">${pg.map(p=>`<div class="report-item"><img src="${p.data}"><div class="report-note">${e(p.note)}</div></div>`).join("")}</div>`).join("")}).join("");}else{
+ let b=j.photos.filter(p=>p.stage==="施工前"),a=j.photos.filter(p=>p.stage==="完工");
+ let pages=Math.max(Math.ceil(b.length/2),Math.ceil(a.length/2));
+ body=`<h2 class="report-stage">施工前後對照</h2>`+
+ Array.from({length:pages},(_,pg)=>{
+   let bs=b.slice(pg*2,pg*2+2),as=a.slice(pg*2,pg*2+2);
+   const col=(title,arr)=>`<div class="compare-col"><div class="compare-title">${title}</div>${
+     [0,1].map(i=>arr[i]?`<div class="compare-photo"><img src="${arr[i].data}"><small>${e(arr[i].note)}</small></div>`:`<div class="compare-empty"></div>`).join("")
+   }</div>`;
+   return `<div class="compare-sheet">${col("施工前",bs)}${col("施工後",as)}</div>`;
+ }).join("")
+}v.innerHTML=`<div class="card no-print"><div class="actions"><button onclick="openJ('${x}')">返回</button><button class="primary" onclick="print()">儲存／列印 PDF</button></div>
+<div class="signature-panel"><h2 style="margin-top:14px">客戶電子簽名</h2><div class="muted">確認內容後，可直接在手機下方手寫簽名。</div><canvas id="signCanvas" class="signature-canvas"></canvas><div class="signature-tools"><button onclick="clearSignature()">清除重簽</button><button class="primary" onclick="saveSignature('${x}')">確認簽名</button></div></div></div><div class="report"><h1>${e(s)}</h1><p><b>工作：</b>${e(j.title)}　<b>日期：</b>${e(j.date)}<br><b>客戶：</b>${e(j.client)}　<b>施工人員：</b>${e(j.worker)}<br><b>地址：</b>${e(j.address)}</p><hr>${body}<div class="report-final"><div class="sign">
 <div class="sign-box"><div class="sign-space">${j.signature?`<img class="signed-preview" src="${j.signature}" alt="客戶電子簽名">`:''}</div><div class="sign-line">客戶簽認${j.signedAt?`<div class="company-meta">簽認時間：${e(j.signedAt)}</div>`:''}</div></div>
 <div class="sign-box"><div class="sign-space">${d.settings.stamp?`<img src="${d.settings.stamp}" alt="公司統編章">`:''}</div><div class="sign-line">${e(s)}${d.settings.taxId?`<div class="company-meta">統一編號：${e(d.settings.taxId)}</div>`:''}</div></div>
-</div></div>`;setTimeout(initSignaturePad,0)}
+</div></div></div>`;setTimeout(initSignaturePad,0)}
 
 let sigCtx=null,sigDrawing=false,sigHasInk=false;
 function initSignaturePad(){
