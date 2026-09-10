@@ -478,13 +478,30 @@ function settings(){
  ${s.stamp?'<button style="width:100%;margin-bottom:10px" onclick="removeStamp()">移除公司章</button>':''}
  <div class="actions"><button onclick="home()">取消</button><button class="primary" onclick="saveSettings()">儲存</button></div></div>`;
 }
-function previewLogo(input){const f=input.files&&input.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{pendingLogo=r.result;const box=document.getElementById('logoPreview');if(box)box.innerHTML=`<img src="${pendingLogo}" alt="Logo 預覽">`};r.readAsDataURL(f)}
+function previewLogo(input){
+ const f=input.files&&input.files[0];if(!f)return;
+ const r=new FileReader();
+ r.onload=()=>{
+   pendingLogo=r.result;
+   d.settings=d.settings||{};
+   d.settings.logo=pendingLogo;
+   sv();
+   const box=document.getElementById('logoPreview');
+   if(box)box.innerHTML=`<img src="${pendingLogo}" alt="Logo 預覽">`;
+ };
+ r.readAsDataURL(f);
+}
 function removeLogo(){if(!confirm('確定移除公司 Logo？'))return;d.settings.logo='';pendingLogo=null;sv();settings()}
 
 function previewStamp(input){
- const f=input.files&&input.files[0]; if(!f)return;
+ const f=input.files&&input.files[0];if(!f)return;
  const r=new FileReader();
- r.onload=()=>{pendingStamp=r.result; const img=document.createElement('img'); img.src=pendingStamp;};
+ r.onload=()=>{
+   pendingStamp=r.result;
+   d.settings=d.settings||{};
+   d.settings.stamp=pendingStamp;
+   sv();
+ };
  r.readAsDataURL(f);
 }
 function removeStamp(){
@@ -492,12 +509,22 @@ function removeStamp(){
  d.settings.stamp=''; pendingStamp=null; sv(); settings();
 }
 function saveSettings(){
- d.settings=d.settings||{};
- d.settings.company=co.value.trim();
- d.settings.taxId=tax.value.trim();
- d.settings.phone=ph.value.trim();
- if(pendingLogo){d.settings.logo=pendingLogo;pendingLogo=null;} if(pendingStamp){d.settings.stamp=pendingStamp;pendingStamp=null;}
- sv();home();
+  d.settings=d.settings||{};
+  const coEl=document.getElementById('co');
+  const taxEl=document.getElementById('tax');
+  const phEl=document.getElementById('ph');
+  if(!coEl||!taxEl||!phEl){
+    alert('公司設定欄位讀取失敗，請重新開啟公司設定後再試一次。');
+    return;
+  }
+  d.settings.company=coEl.value.trim();
+  d.settings.taxId=taxEl.value.trim();
+  d.settings.phone=phEl.value.trim();
+  if(pendingLogo){d.settings.logo=pendingLogo;pendingLogo=null;}
+  if(pendingStamp){d.settings.stamp=pendingStamp;pendingStamp=null;}
+  sv();
+  alert('公司設定已儲存。');
+  home();
 }
 home();
 </script>
