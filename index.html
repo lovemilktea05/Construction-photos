@@ -56,7 +56,8 @@ canvas#signCanvas{touch-action:none!important;-webkit-touch-callout:none!importa
  .compare-col{display:flex;flex-direction:column;gap:7mm}
  .compare-title{text-align:center;font-weight:800;font-size:16px;margin-bottom:2mm}
  .compare-photo{height:105mm;border:1px solid #aaa;padding:5px;break-inside:avoid;page-break-inside:avoid;display:flex;flex-direction:column}
- .compare-photo img{width:100%!important;height:84mm!important;object-fit:contain!important;background:#fff}
+ .compare-image-frame{height:84mm!important;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden}
+ .compare-photo img{width:auto!important;height:auto!important;max-width:100%!important;max-height:100%!important;object-fit:initial!important;background:#fff}
  .compare-photo small{display:block;margin-top:3mm;font-size:11px}
  .compare-empty{height:105mm}
 }
@@ -64,7 +65,8 @@ canvas#signCanvas{touch-action:none!important;-webkit-touch-callout:none!importa
 .compare-col{min-width:0}
 .compare-title{text-align:center;font-weight:800;margin-bottom:8px}
 .compare-photo{border:1px solid #ddd;border-radius:8px;padding:6px;margin-bottom:8px}
-.compare-photo img{display:block;width:100%;height:260px;max-height:none;object-fit:contain;object-position:center;background:#fff;image-orientation:from-image}
+.compare-image-frame{height:260px;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden}
+.compare-photo img{display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:initial;background:#fff;image-orientation:from-image}
 .compare-photo small{display:block;margin-top:5px}
 
 @media print{
@@ -91,11 +93,8 @@ canvas#signCanvas{touch-action:none!important;-webkit-touch-callout:none!importa
     padding:3px!important;
     border:1px solid #aaa!important;
   }
-  .compare-photo img{
-    height:61mm!important;
-    width:100%!important;
-    object-fit:contain!important;
-  }
+  .compare-image-frame{height:61mm!important}
+  .compare-photo img{width:auto!important;height:auto!important;max-width:100%!important;max-height:100%!important;object-fit:initial!important}
   .compare-photo small{font-size:9px!important;margin-top:1mm!important}
   .compare-empty{height:76mm!important}
   .report-final{
@@ -134,10 +133,8 @@ canvas#signCanvas{touch-action:none!important;-webkit-touch-callout:none!importa
     margin:0 0 2mm!important;
     padding:2px!important;
   }
-  .compare-photo img{
-    height:54mm!important;
-    object-fit:contain!important;
-  }
+  .compare-image-frame{height:54mm!important}
+  .compare-photo img{width:auto!important;height:auto!important;max-width:100%!important;max-height:100%!important;object-fit:initial!important}
   .compare-empty{height:66mm!important}
   .sign{
     margin-top:1mm!important;
@@ -253,7 +250,22 @@ function toggleArchive(jid){const j=d.jobs.find(q=>q.id===jid);if(!j)return;j.ar
 function deleteJob(jid){const j=d.jobs.find(q=>q.id===jid);if(!j)return;if(!confirm(`確定刪除「${j.title||'這筆工作'}」？此動作無法復原。`))return;d.jobs=d.jobs.filter(q=>q.id!==jid);sv();home()}
 function unlockSignature(jid){const j=d.jobs.find(q=>q.id===jid);if(!j)return;if(!confirm('解除簽名後，這份報告可再次修改。確定解除客戶簽名嗎？'))return;j.signature='';j.signedAt='';sv();openJ(jid)}
 function add(x){let j0=d.jobs.find(q=>q.id===x);if(!j0||!requireUnlocked(j0))return;v.innerHTML=`<div class="card"><h2>加入照片</h2><div class="field"><label>分類</label><select id="st"><option>施工前</option><option>施工中</option><option>完工</option></select></div><div class="field"><label>說明</label><input id="pn"></div><div class="field"><label>照片</label><input id="fs" type="file" accept="image/*" multiple></div><div class="actions"><button onclick="openJ('${x}')">取消</button><button class="primary" onclick="saveP('${x}')">加入</button></div></div>`}
-async function data(f){return new Promise(r=>{let rd=new FileReader();rd.onload=q=>{let im=new Image();im.onload=()=>{let z=Math.min(1,1400/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*z;c.height=im.height*z;c.getContext("2d").drawImage(im,0,0,c.width,c.height);r(c.toDataURL("image/jpeg",.76))};im.src=q.target.result};rd.readAsDataURL(f)})}
+async function data(f){
+ let source=null;
+ try{
+   if(window.createImageBitmap)source=await createImageBitmap(f,{imageOrientation:"from-image"});
+ }catch(err){source=null}
+ if(!source){
+   source=await new Promise((resolve,reject)=>{const rd=new FileReader(),im=new Image();rd.onload=()=>{im.onload=()=>resolve(im);im.onerror=reject;im.src=rd.result};rd.onerror=reject;rd.readAsDataURL(f)});
+ }
+ const sourceW=source.naturalWidth||source.width,sourceH=source.naturalHeight||source.height;
+ const scale=Math.min(1,1400/Math.max(sourceW,sourceH));
+ const c=document.createElement("canvas");
+ c.width=Math.max(1,Math.round(sourceW*scale));c.height=Math.max(1,Math.round(sourceH*scale));
+ c.getContext("2d").drawImage(source,0,0,sourceW,sourceH,0,0,c.width,c.height);
+ if(source.close)source.close();
+ return c.toDataURL("image/jpeg",.82);
+}
 async function saveP(x){let j=d.jobs.find(q=>q.id===x),f=[...fs.files];if(!f.length)return alert("請選照片");for(let q of f)j.photos.push({id:id(),stage:st.value,note:pn.value,data:await data(q)});sv();openJ(x)}
 
 function editPhoto(jid,pid){
@@ -287,7 +299,7 @@ function report(x,cmp){window.__reportCompare=cmp;let j=d.jobs.find(q=>q.id===x)
  Array.from({length:pages},(_,pg)=>{
    let bs=b.slice(pg*2,pg*2+2),as=a.slice(pg*2,pg*2+2);
    const col=(title,arr)=>`<div class="compare-col"><div class="compare-title">${title}</div>${
-     [0,1].map(i=>arr[i]?`<div class="compare-photo"><img src="${arr[i].data}"><small>${e(arr[i].note)}</small></div>`:`<div class="compare-empty"></div>`).join("")
+     [0,1].map(i=>arr[i]?`<div class="compare-photo"><div class="compare-image-frame"><img src="${arr[i].data}"></div><small>${e(arr[i].note)}</small></div>`:`<div class="compare-empty"></div>`).join("")
    }</div>`;
    return `<div class="compare-sheet">${col("施工前",bs)}${col("施工後",as)}</div>`;
  }).join("")
