@@ -175,6 +175,13 @@ canvas#signCanvas{touch-action:none!important;-webkit-touch-callout:none!importa
 .signed-badge{display:inline-block;padding:4px 9px;border-radius:999px;background:#e7f4ea;color:#27623a;font-size:12px;font-weight:800;margin-top:4px}
 .archive-badge{display:inline-block;padding:4px 9px;border-radius:999px;background:#edf0f2;color:#59636d;font-size:12px;font-weight:800;margin-top:4px}
 .tutorial-step{display:flex;gap:10px;align-items:flex-start;margin:12px 0}.tutorial-num{width:28px;height:28px;border-radius:50%;background:#243746;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex:0 0 auto}
+
+.report-logo{width:150px!important;min-width:150px!important;display:flex;align-items:center;justify-content:center}
+.report-logo img{max-width:145px!important;max-height:105px!important;width:auto!important;height:auto!important;object-fit:contain!important}
+@media print{
+ .report-logo{width:38mm!important;min-width:38mm!important}
+ .report-logo img{max-width:36mm!important;max-height:25mm!important;width:auto!important;height:auto!important}
+}
 </style></head><body><div class="app"><div class="top"><b>現場照片報告</b><div style="display:flex;gap:6px"><button onclick="openBackup()">備份</button><button onclick="settings()">公司設定</button></div></div><div class="wrap" id="v"></div></div><script>
 const K="photo_report_v1";
 let d=JSON.parse(localStorage.getItem(K)||'{"settings":{},"jobs":[]}');
